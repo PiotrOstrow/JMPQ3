@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.zip.CRC32;
 
 public class AttributesFile {
@@ -81,7 +81,7 @@ public class AttributesFile {
         return file;
     }
 
-    public void setNames(ArrayList<String> names) {
+    public void setNames(List<String> names) {
         int i = 0;
         for(String name : names) {
             refMap.put(name, i);
@@ -90,7 +90,7 @@ public class AttributesFile {
     }
 
     public int getEntry(String name) {
-            return refMap.getOrDefault(name, -1);
+		return refMap.getOrDefault(name, -1);
     }
 
     private int getCrc32(File file) throws IOException {

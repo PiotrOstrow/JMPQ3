@@ -611,7 +611,7 @@ public class JMpqEditor implements AutoCloseable {
             File temp = new File(dest.getAbsolutePath() + File.separator + "(listfile)");
             extractFile("(listfile)", temp);
         } else {
-            ArrayList<Block> blocks = blockTable.getAllVaildBlocks();
+            List<Block> blocks = blockTable.getAllVaildBlocks();
             try {
                 int i = 0;
                 for (Block b : blocks) {
@@ -619,7 +619,7 @@ public class JMpqEditor implements AutoCloseable {
                         continue;
                     }
                     ByteBuffer buf = ByteBuffer.allocate(b.getCompressedSize()).order(ByteOrder.LITTLE_ENDIAN);
-                    fc.position(headerOffset + b.getFilePos());
+                    fc.position(headerOffset + b.getFilePosUnsigned());
                     readFully(buf, fc);
                     buf.rewind();
                     MpqFile f = new MpqFile(buf, b, discBlockSize, "");
@@ -735,7 +735,7 @@ public class JMpqEditor implements AutoCloseable {
         Block b = blockTable.getBlockAtPos(pos);
 
         ByteBuffer buffer = ByteBuffer.allocate(b.getCompressedSize()).order(ByteOrder.LITTLE_ENDIAN);
-        fc.position(headerOffset + b.getFilePos());
+        fc.position(headerOffset + b.getFilePosUnsigned());
         readFully(buffer, fc);
         buffer.rewind();
 
@@ -754,7 +754,7 @@ public class JMpqEditor implements AutoCloseable {
             throw new IOException("cant access this block");
         }
         ByteBuffer buffer = ByteBuffer.allocate(block.getCompressedSize()).order(ByteOrder.LITTLE_ENDIAN);
-        fc.position(headerOffset + block.getFilePos());
+        fc.position(headerOffset + block.getFilePosUnsigned());
         readFully(buffer, fc);
         buffer.rewind();
 
@@ -769,7 +769,7 @@ public class JMpqEditor implements AutoCloseable {
      */
     public List<MpqFile> getMpqFilesByBlockTable() throws IOException {
         List<MpqFile> mpqFiles = new ArrayList<>();
-        ArrayList<Block> list = blockTable.getAllVaildBlocks();
+        List<Block> list = blockTable.getAllVaildBlocks();
         for (Block block : list) {
             try {
                 MpqFile mpqFile = getMpqFileByBlock(block);
@@ -784,7 +784,7 @@ public class JMpqEditor implements AutoCloseable {
      * Deletes the specified file out of the mpq once you rebuild the mpq.
      *
      * @param name of the file inside the mpq
-     * @throws JMpqException if file is not found or access errors occur
+     * @throws NonWritableChannelException if access errors occurs
      */
     public void deleteFile(String name) {
         if (!canWrite) {
@@ -911,25 +911,19 @@ public class JMpqEditor implements AutoCloseable {
             writeChannel.write(headerReader);
 
             newFormatVersion = formatVersion;
-            switch (newFormatVersion) {
-                case 0:
-                    newHeaderSize = 32;
-                    break;
-                case 1:
-                    newHeaderSize = 44;
-                    break;
-                case 2:
-                case 3:
-                    newHeaderSize = 208;
-                    break;
-            }
+			switch (newFormatVersion) {
+				case 0 -> newHeaderSize = 32;
+				case 1 -> newHeaderSize = 44;
+				case 2, 3 -> newHeaderSize = 208;
+			}
+
             newSectorSizeShift = options.recompress ? Math.min(options.newSectorSizeShift, 15) : sectorSizeShift;
             newDiscBlockSize = options.recompress ? 512 * (1 << newSectorSizeShift) : discBlockSize;
             calcNewTableSize();
 
-            ArrayList<Block> newBlocks = new ArrayList<>();
-            ArrayList<String> newFiles = new ArrayList<>();
-            ArrayList<String> existingFiles = new ArrayList<>(listFile.getFiles());
+            List<Block> newBlocks = new ArrayList<>();
+            List<String> newFiles = new ArrayList<>();
+            List<String> existingFiles = new ArrayList<>(listFile.getFiles());
 
             sortListfileEntries(existingFiles);
 
@@ -952,7 +946,7 @@ public class JMpqEditor implements AutoCloseable {
                     int pos = hashTable.getBlockIndexOfFile(existingName);
                     Block b = blockTable.getBlockAtPos(pos);
                     ByteBuffer buf = ByteBuffer.allocate(b.getCompressedSize()).order(ByteOrder.LITTLE_ENDIAN);
-                    fc.position(headerOffset + b.getFilePos());
+                    fc.position(headerOffset + b.getFilePosUnsigned());
                     readFully(buf, fc);
                     buf.rewind();
                     MpqFile f = new MpqFile(buf, b, discBlockSize, existingName);
@@ -1076,7 +1070,7 @@ public class JMpqEditor implements AutoCloseable {
         log.debug("Rebuild complete. Took: " + (t / 1000000) + "ms");
     }
 
-    private void sortListfileEntries(ArrayList<String> remainingFiles) {
+    private void sortListfileEntries(List<String> remainingFiles) {
         // Sort entries to preserve block table order
         remainingFiles.sort((o1, o2) -> {
             int pos1 = 999999999;
