@@ -268,7 +268,7 @@ class Huffman {
         root.parent = null;
     }
 
-    void Decompress(ByteBuffer in, ByteBuffer out) {
+    void decompress(ByteBuffer in, ByteBuffer out) {
         setSource(in);
         byte type = (byte) getBits(8);
         buildTree(type);

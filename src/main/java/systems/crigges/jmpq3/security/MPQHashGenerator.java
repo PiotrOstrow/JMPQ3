@@ -52,7 +52,7 @@ public class MPQHashGenerator {
     /**
      * Convenience method to process data from the given string, assuming UTF_8
      * encoding.
-     * 
+     *
      * @param src
      *            string to be hashed.
      */
@@ -66,7 +66,7 @@ public class MPQHashGenerator {
      * Calling this method multiple times on different data sets produces the
      * same resulting hash as calling it once with a data set produced by
      * concatenating the separate data sets together in call order.
-     * 
+     *
      * @param src
      *            data to be hashed.
      */
@@ -80,7 +80,7 @@ public class MPQHashGenerator {
 
     /**
      * Get the resulting hash for the processed input.
-     * 
+     *
      * @return 32 bit hash.
      */
     public int getHash() {
@@ -89,7 +89,7 @@ public class MPQHashGenerator {
 
     /**
      * Create a new hash generator for hashtable bucket array index hashes.
-     * 
+     *
      * @return new hash generator.
      */
     public static MPQHashGenerator getTableOffsetGenerator() {
@@ -98,7 +98,7 @@ public class MPQHashGenerator {
 
     /**
      * Create a new hash generator for part 1 of hashtable keys.
-     * 
+     *
      * @return new hash generator.
      */
     public static MPQHashGenerator getTableKey1Generator() {
@@ -107,7 +107,7 @@ public class MPQHashGenerator {
 
     /**
      * Create a new hash generator for part 2 of hashtable keys.
-     * 
+     *
      * @return new hash generator.
      */
     public static MPQHashGenerator getTableKey2Generator() {
@@ -116,10 +116,16 @@ public class MPQHashGenerator {
 
     /**
      * Create a new hash generator for MPQ encryption keys.
-     * 
+     *
      * @return new hash generator.
      */
     public static MPQHashGenerator getFileKeyGenerator() {
         return new MPQHashGenerator(CryptographicLUT.HASH_ENCRYPTION_KEY);
+    }
+
+    public static int generateFileKey(String s) {
+        final MPQHashGenerator hasher = MPQHashGenerator.getFileKeyGenerator();
+        hasher.process(s);
+        return hasher.getHash();
     }
 }

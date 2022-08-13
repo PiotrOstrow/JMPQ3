@@ -44,7 +44,7 @@ public class Exploder {
     private static final int PK_LITERAL_SIZE_FIXED = 0; // Use fixed size literal bytes, used for binary data
     private static final int PK_LITERAL_SIZE_VARIABLE = 1; // Use variable size literal bytes, used for text
 
-    private static long TRUNCATE_VALUE(long value, int bits)  {
+    private static long truncateValue(long value, int bits)  {
         return ((value) & ((1L << (bits)) - 1));
     }
 
@@ -150,8 +150,8 @@ public class Exploder {
                     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08
             };
 
-    public static int pkexplode(byte[] pInBuffer, byte[] pOutBuffer, int inPos) {
-        // Compressed data cannot be less than 4 bytes;
+    public static void pkexplode(byte[] pInBuffer, byte[] pOutBuffer, int inPos) {
+        // Compressed data cannot be less than 4 bytes
         // this is not possible in any case whatsoever
         if (pInBuffer.length < 4)
             throw new IllegalArgumentException("PK_ERR_INCOMPLETE_INPUT: Incomplete input");
@@ -177,7 +177,7 @@ public class Exploder {
         int nDictSize = 64 << nDictSizeByte;
 
         // Initialize dictionary position
-        byte[] Dict = new byte[0x1000]; // Sliding dictionary used for compression and decompression
+        byte[] dict = new byte[0x1000]; // Sliding dictionary used for compression and decompression
         int pDictPos = 0;
 
         // Initialize current dictionary size to zero
@@ -218,7 +218,7 @@ public class Exploder {
 
                 // Find the base value for the copy length
                 for (i = 0; i <= 0x0F; i++) {
-                    if (TRUNCATE_VALUE(nBitBuffer, LenBits[i] & 0xFF) == (LenCode[i] & 0xFF))
+                    if (truncateValue(nBitBuffer, LenBits[i] & 0xFF) == (LenCode[i] & 0xFF))
                         break;
                 }
 
@@ -227,7 +227,7 @@ public class Exploder {
                 nBits -= LenBits[i] & 0xFF;
 
                 // Store the copy length
-                nCopyLen = (int) ((LenBase[i] & 0xFFFF) + TRUNCATE_VALUE(nBitBuffer, ExLenBits[i] & 0xFF)); // Length of data to copy from the dictionary
+                nCopyLen = (int) ((LenBase[i] & 0xFFFF) + truncateValue(nBitBuffer, ExLenBits[i] & 0xFF)); // Length of data to copy from the dictionary
 
                 // Remove the extra bits from the bit buffer
                 nBitBuffer >>= ExLenBits[i] & 0xFF;
@@ -252,7 +252,7 @@ public class Exploder {
 
                 // Find most significant 6 bits of offset into the dictionary
                 for (i = 0; i <= 0x3F; i++) {
-                    if (TRUNCATE_VALUE(nBitBuffer, OffsBits[i] & 0xFF) == (OffsCode[i] & 0xFF))
+                    if (truncateValue(nBitBuffer, OffsBits[i] & 0xFF) == (OffsCode[i] & 0xFF))
                         break;
                 }
 
@@ -275,7 +275,7 @@ public class Exploder {
                 } else {
 
                     // Store the exact offset to a byte in the dictionary
-                    pCopyOffs = (int) (pDictPos - 1 - ((i << nDictSizeByte) + TRUNCATE_VALUE(nBitBuffer, nDictSizeByte)));
+                    pCopyOffs = (int) (pDictPos - 1 - ((i << nDictSizeByte) + truncateValue(nBitBuffer, nDictSizeByte)));
 
                     // Remove the rest of the dictionary offset from the bit buffer
                     nBitBuffer >>= nDictSizeByte;
@@ -298,7 +298,7 @@ public class Exploder {
 
                     // Copy the byte from the dictionary and add it to the end of the dictionary
                     // *pDictPos++ = *pOutPos++ = *pCopyOffs++;
-                    Dict[pDictPos++] = pOutBuffer[pOutPos++] = Dict[pCopyOffs++];
+                    dict[pDictPos++] = pOutBuffer[pOutPos++] = dict[pCopyOffs++];
 
                     // If the dictionary is not full yet, increment the current dictionary size
                     if (nCurDictSize < nDictSize)
@@ -319,7 +319,7 @@ public class Exploder {
 
                     // Copy the byte and add it to the end of the dictionary
                     // *pDictPos++ = *pOutPos++ = (byte)(nBitBuffer >> 1);
-                    Dict[pDictPos++] = pOutBuffer[pOutPos++] = (byte) (nBitBuffer >> 1);
+                    dict[pDictPos++] = pOutBuffer[pOutPos++] = (byte) (nBitBuffer >> 1);
 
                     // Remove the byte from the bit buffer
                     nBitBuffer >>= 9;
@@ -335,13 +335,13 @@ public class Exploder {
 
                     // Find the actual byte from the bit sequence
                     for (i = 0; i <= 0xFF; i++) {
-                        if (TRUNCATE_VALUE(nBitBuffer, ChBits[i] & 0xFF) == (ChCode[i] & 0xFFFF))
+                        if (truncateValue(nBitBuffer, ChBits[i] & 0xFF) == (ChCode[i] & 0xFFFF))
                             break;
                     }
 
                     // Copy the byte and add it to the end of the dictionary
                     // *pDictPos++ = *pOutPos++ = (byte)i;
-                    Dict[pDictPos++] = pOutBuffer[pOutPos++] = (byte) i;
+                    dict[pDictPos++] = pOutBuffer[pOutPos++] = (byte) i;
 
                     // Remove the byte from the bit buffer
                     nBitBuffer >>= ChBits[i] & 0xFF;
@@ -358,8 +358,8 @@ public class Exploder {
                     pDictPos = 0;
             }
         }
-
-        return pOutPos;
     }
 
+    private Exploder() {
+    }
 }

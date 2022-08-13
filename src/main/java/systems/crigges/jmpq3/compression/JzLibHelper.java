@@ -5,12 +5,9 @@ import com.jcraft.jzlib.GZIPException;
 import com.jcraft.jzlib.Inflater;
 
 public class JzLibHelper {
-    private static final Inflater inf = new Inflater();
-
-    private static int defLvl = 0;
-    private static Deflater def = null;
 
     public static void inflate(byte[] bytes, int offset, int uncompSize, byte[] output) {
+        Inflater inf = new Inflater();
         inf.init();
         inf.setInput(bytes, offset, bytes.length - 1, false);
         inf.setOutput(output);
@@ -23,19 +20,13 @@ public class JzLibHelper {
         inf.end();
     }
 
-    static byte[] comp = new byte[1024];
+    public static byte[] deflate(byte[] bytes, boolean strongDeflate) throws GZIPException {
+        Deflater def = new Deflater(strongDeflate ? 9 : 1);
 
-    public static byte[] deflate(byte[] bytes, boolean strongDeflate) {
-        boolean created = tryCreateDeflater(strongDeflate ? 9 : 1);
-
-        if (comp.length < bytes.length) {
-            comp = new byte[bytes.length];
-        }
-        if (!created) {
-            def.init(strongDeflate ? 9 : 1);
-        }
+        byte[] comp = new byte[Math.max(1024, bytes.length)];
         def.setInput(bytes);
         def.setOutput(comp);
+
         while ((def.total_in != bytes.length) && (def.total_out < bytes.length)) {
             def.avail_in = (def.avail_out = 1);
             def.deflate(0);
@@ -52,16 +43,6 @@ public class JzLibHelper {
         return temp;
     }
 
-    private static boolean tryCreateDeflater(int lvl) {
-        if (def == null || lvl != defLvl) {
-            try {
-                def = new Deflater(lvl);
-                defLvl = lvl;
-                return true;
-            } catch (GZIPException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return false;
+    private JzLibHelper() {
     }
 }

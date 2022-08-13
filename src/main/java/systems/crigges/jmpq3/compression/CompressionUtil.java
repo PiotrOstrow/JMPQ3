@@ -13,10 +13,6 @@ import java.nio.ByteBuffer;
  */
 public class CompressionUtil {
 
-    private static final ADPCM ADPCM = new ADPCM(2);;
-    private static final Huffman HUFFMAN = new Huffman();
-    private static final ZopfliHelper ZOPFLI = new ZopfliHelper();
-
     /* Masks for Decompression Type 2 */
     private static final byte FLAG_HUFFMAN = 0x01;
     private static final byte FLAG_DEFLATE = 0x02;
@@ -27,10 +23,6 @@ public class CompressionUtil {
     private static final byte FLAG_ADPCM1C = 0x40;
     private static final byte FLAG_ADPCM2C = -0x80;
     private static final byte FLAG_LZMA = 0x12;
-
-    public static byte[] compress(byte[] temp, RecompressOptions recompress) {
-        return recompress.useZopfli ? ZOPFLI.deflate(temp, recompress.iterations) : JzLibHelper.deflate(temp, recompress.recompress);
-    }
 
     public static byte[] decompress(byte[] sector, int compressedSize, int uncompressedSize) throws JMpqException {
         if (compressedSize == uncompressedSize) {
@@ -62,23 +54,23 @@ public class CompressionUtil {
 
         if ((compressionType & FLAG_HUFFMAN) != 0) {
             (flip ? in : out).clear();
-            HUFFMAN.Decompress(flip ? out : in, flip ? in : out);
+
+            Huffman huffman = new Huffman();
+            huffman.decompress(flip ? out : in, flip ? in : out);
+
             out.limit(out.position());
             in.position(0);
             out.position(0);
             flip = !flip;
         }
 
-        if ((compressionType & FLAG_ADPCM2C) != 0) {
-            ByteBuffer newOut = ByteBuffer.wrap(new byte[uncompressedSize]);
-            ADPCM.decompress(flip ? out : in, newOut, 2);
-            (flip ? out : in).position(0);
-            return newOut.array();
-        }
+        if ((compressionType & FLAG_ADPCM2C) != 0 || (compressionType & FLAG_ADPCM1C) != 0) {
+            int numChannels = (compressionType & FLAG_ADPCM2C) != 0 ? 2 : 1;
+            ADPCM adpcm = new ADPCM(numChannels);
 
-        if ((compressionType & FLAG_ADPCM1C) != 0) {
             ByteBuffer newOut = ByteBuffer.wrap(new byte[uncompressedSize]);
-            ADPCM.decompress(flip ? out : in, newOut, 1);
+            adpcm.decompress(flip ? out : in, newOut, numChannels);
+
             (flip ? out : in).position(0);
             return newOut.array();
         }

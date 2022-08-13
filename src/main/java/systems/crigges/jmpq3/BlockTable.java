@@ -2,6 +2,7 @@ package systems.crigges.jmpq3;
 
 import systems.crigges.jmpq3.security.MPQEncryption;
 
+import javax.annotation.concurrent.Immutable;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -9,18 +10,45 @@ import java.nio.MappedByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static systems.crigges.jmpq3.MpqFile.*;
+import static systems.crigges.jmpq3.Block.EXISTS;
 
+@Immutable
 public class BlockTable {
-    private final ByteBuffer blockMap;
-    private final int size;
 
-    public BlockTable(ByteBuffer buf) {
-        this.size = (buf.capacity() / 16);
+    private static final int BLOCK_SIZE = 16;
 
-        this.blockMap = ByteBuffer.allocate(buf.capacity());
-        new MPQEncryption(-326913117, true).processFinal(buf, blockMap);
-        this.blockMap.order(ByteOrder.LITTLE_ENDIAN);
+    private final List<Block> blocks;
+
+    private BlockTable(List<Block> blocks) {
+        this.blocks = blocks;
+    }
+
+    public Block getBlockAtPos(int pos) throws JMpqException {
+        if (pos < 0 || pos > blocks.size())
+            throw new JMpqException("Invaild block position");
+
+        return blocks.get(pos);
+    }
+
+    public List<Block> getAllVaildBlocks() {
+        return blocks.stream()
+            .filter(e -> e.hasFlag(EXISTS))
+            .toList();
+    }
+
+    public static BlockTable readFrom(ByteBuffer byteBuffer) {
+        ByteBuffer decryptedBuffer = ByteBuffer.allocate(byteBuffer.capacity());
+        new MPQEncryption(-326913117, true).processFinal(byteBuffer, decryptedBuffer);
+        decryptedBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        decryptedBuffer.rewind();
+
+        int numBlocks = byteBuffer.capacity() / BLOCK_SIZE;
+        List<Block> blocks = new ArrayList<>(numBlocks);
+
+        for (int i = 0; i < numBlocks; i++)
+            blocks.add(Block.readFromBuffer(decryptedBuffer));
+
+        return new BlockTable(blocks);
     }
 
     public static void writeNewBlocktable(List<Block> blocks, int size, MappedByteBuffer buf) {
@@ -31,103 +59,6 @@ public class BlockTable {
         }
         temp.clear();
         if (new MPQEncryption(-326913117, false).processFinal(temp, buf))
-            throw new BufferOverflowException(); 
-    }
-
-    public Block getBlockAtPos(int pos) throws JMpqException {
-        if ((pos < 0) || (pos > this.size)) {
-            throw new JMpqException("Invaild block position");
-        }
-        this.blockMap.position(pos * 16);
-		return new Block(this.blockMap);
-    }
-
-    public List<Block> getAllVaildBlocks() throws JMpqException {
-        ArrayList<Block> list = new ArrayList<>();
-        for (int i = 0; i < this.size; i++) {
-            Block b = getBlockAtPos(i);
-            if ((b.getFlags() & 0x80000000) == -2147483648) {
-                list.add(b);
-            }
-        }
-        return list;
-    }
-
-    public static class Block {
-        private long filePos;
-        private int compressedSize;
-        private int normalSize;
-        private int flags;
-
-        public Block(ByteBuffer buf) {
-            this.filePos = buf.getInt() & 0xFFFFFFFFL;
-            this.compressedSize = buf.getInt();
-            this.normalSize = buf.getInt();
-            this.flags = buf.getInt();
-        }
-
-        public Block(long filePos, int compressedSize, int normalSize, int flags) {
-            this.filePos = filePos;
-            this.compressedSize = compressedSize;
-            this.normalSize = normalSize;
-            this.flags = flags;
-        }
-
-        public void writeToBuffer(ByteBuffer bb) {
-            bb.putInt((int) this.filePos);
-            bb.putInt(this.compressedSize);
-            bb.putInt(this.normalSize);
-            bb.putInt(this.flags);
-        }
-
-        public int getFilePos() {
-            return (int) this.filePos;
-        }
-
-		public long getFilePosUnsigned() {
-			return this.filePos;
-		}
-
-        public int getCompressedSize() {
-            return this.compressedSize;
-        }
-
-        public int getNormalSize() {
-            return this.normalSize;
-        }
-
-        public int getFlags() {
-            return this.flags;
-        }
-
-        public void setFilePos(int filePos) {
-            this.filePos = filePos;
-        }
-
-        public void setCompressedSize(int compressedSize) {
-            this.compressedSize = compressedSize;
-        }
-
-        public void setNormalSize(int normalSize) {
-            this.normalSize = normalSize;
-        }
-
-        public void setFlags(int flags) {
-            this.flags = flags;
-        }
-
-        public boolean hasFlag(int flag) {
-            return (flags & flag) == flag;
-        }
-
-        public String toString() {
-            return "Block [filePos=" + this.filePos + ", compressedSize=" + this.compressedSize + ", normalSize=" + this.normalSize + ", flags=" +
-                    printFlags().trim() + "]";
-        }
-
-        public String printFlags() {
-            return (hasFlag(EXISTS) ? "EXISTS " : "") + (hasFlag(SINGLE_UNIT) ? "SINGLE_UNIT " : "") + (hasFlag(COMPRESSED) ? "COMPRESSED " : "")
-                    + (hasFlag(ENCRYPTED) ? "ENCRYPTED " : "") + (hasFlag(ADJUSTED_ENCRYPTED) ? "ADJUSTED " : "") + (hasFlag(DELETED) ? "DELETED " : "");
-        }
+            throw new BufferOverflowException();
     }
 }

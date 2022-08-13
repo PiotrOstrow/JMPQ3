@@ -1,45 +1,26 @@
 package systems.crigges.jmpq3;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Scanner;
+import javax.annotation.concurrent.Immutable;
+import java.io.ByteArrayInputStream;
+import java.util.*;
 
-import static systems.crigges.jmpq3.HashTable.calculateFileKey;
+import static systems.crigges.jmpq3.Util.calculateFileKey;
 
+@Immutable
 public class Listfile {
-    private final HashMap<Long, String> files = new HashMap<>();
 
-    public Listfile(byte[] file) {
-        String list = new String(file, StandardCharsets.UTF_8);
-        Scanner sc = new Scanner(list);
-        while (sc.hasNextLine()) {
-            addFile(sc.nextLine());
-        }
-        sc.close();
-    }
+    private final Map<Long, String> files;
 
-    public Listfile() {
+    private Listfile(Map<Long, String> files) {
+        this.files = files;
     }
 
     public Collection<String> getFiles() {
-        return this.files.values();
+        return Collections.unmodifiableCollection(files.values());
     }
 
-    public HashMap<Long, String> getFileMap() {
-        return this.files;
-    }
-
-    public void addFile(String name) {
-        long key = calculateFileKey(name);
-        if (name != null && name.length() > 0 && !this.files.containsKey(key)) {
-            this.files.put(key, name);
-        }
-    }
-
-    public void removeFile(String name) {
-        long key = calculateFileKey(name);
-        this.files.remove(key);
+    public Map<Long, String> getFileMap() {
+        return Collections.unmodifiableMap(files);
     }
 
     public boolean containsFile(String name) {
@@ -49,11 +30,26 @@ public class Listfile {
 
     public byte[] asByteArray() {
         StringBuilder temp = new StringBuilder();
-        for (String entry : this.files.values()) {
+        for (String entry : files.values()) {
             temp.append(entry);
             temp.append("\r\n");
         }
         return temp.toString().getBytes();
     }
 
+    public static Listfile from(byte[] data) {
+        Map<Long, String> result = new HashMap<>();
+
+        Scanner scanner = new Scanner(new ByteArrayInputStream(data));
+        while(scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            if(line == null || line.isBlank())
+                continue;
+
+            long key = calculateFileKey(line);
+            result.putIfAbsent(key, line);
+        }
+
+        return new Listfile(result);
+    }
 }
