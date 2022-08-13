@@ -134,7 +134,7 @@ public class MpqFile {
                 if (isEncrypted) {
                     new MPQEncryption(baseKey, true).processSingle(ByteBuffer.wrap(arr));
                 }
-                arr = decompressSector(arr, block.getCompressedSize(), block.getNormalSize());
+                arr = decompressSingleUnitSector(arr, block.getCompressedSize(), block.getNormalSize());
                 writer.write(arr);
                 writer.flush();
                 writer.close();
@@ -200,7 +200,7 @@ public class MpqFile {
     /**
      * Write file and block.
      *
-     * @param newBlock        the new block
+     * @param newBlock    the new block
      * @param writeBuffer the write buffer
      */
     public void writeFileAndBlock(Block newBlock, MappedByteBuffer writeBuffer) throws JMpqException {
@@ -268,8 +268,8 @@ public class MpqFile {
     /**
      * Write file and block.
      *
-     * @param b                    the b
-     * @param buf                the buf
+     * @param b          the b
+     * @param buf        the buf
      * @param sectorSize the sector size
      * @param recompress
      */
@@ -280,9 +280,9 @@ public class MpqFile {
     /**
      * Write file and block.
      *
-     * @param fileArr        the file arr
-     * @param b                    the b
-     * @param buf                the buf
+     * @param fileArr    the file arr
+     * @param b          the b
+     * @param buf        the buf
      * @param sectorSize the sector size
      * @param recompress
      */
@@ -372,7 +372,7 @@ public class MpqFile {
     /**
      * Gets the sector as byte array.
      *
-     * @param buf                the buf
+     * @param buf        the buf
      * @param sectorSize the sector size
      * @return the sector as byte array
      */
@@ -385,14 +385,18 @@ public class MpqFile {
     /**
      * Decompress sector.
      *
-     * @param sector                     the sector
-     * @param normalSize             the normal size
+     * @param sector           the sector
+     * @param normalSize       the normal size
      * @param uncompressedSize the uncomp size
      * @return the byte[]
      * @throws JMpqException the j mpq exception
      */
     private byte[] decompressSector(byte[] sector, int normalSize, int uncompressedSize) throws JMpqException {
         return CompressionUtil.decompress(sector, normalSize, uncompressedSize);
+    }
+
+    private byte[] decompressSingleUnitSector(byte[] sector, int normalSize, int uncompressedSize) throws IOException {
+        return CompressionUtil.decompressSingleUnit(sector, normalSize, uncompressedSize);
     }
 
     private byte[] decompressImplodedSector(byte[] sector, int normalSize, int uncompressedSize) throws JMpqException {

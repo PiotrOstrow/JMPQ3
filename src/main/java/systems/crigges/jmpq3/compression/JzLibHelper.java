@@ -10,11 +10,10 @@ public class JzLibHelper {
     private static int defLvl = 0;
     private static Deflater def = null;
 
-    public static byte[] inflate(byte[] bytes, int offset, int uncompSize) {
-        byte[] uncomp = new byte[uncompSize];
+    public static void inflate(byte[] bytes, int offset, int uncompSize, byte[] output) {
         inf.init();
         inf.setInput(bytes, offset, bytes.length - 1, false);
-        inf.setOutput(uncomp);
+        inf.setOutput(output);
         while ((inf.total_out < uncompSize) && (inf.total_in < bytes.length)) {
             inf.avail_in = (inf.avail_out = 1);
             int err = inf.inflate(0);
@@ -22,7 +21,6 @@ public class JzLibHelper {
                 break;
         }
         inf.end();
-        return uncomp;
     }
 
     static byte[] comp = new byte[1024];
