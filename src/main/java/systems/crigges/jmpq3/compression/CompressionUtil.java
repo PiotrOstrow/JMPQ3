@@ -24,7 +24,7 @@ public class CompressionUtil {
     private static final byte FLAG_ADPCM2C = -0x80;
     private static final byte FLAG_LZMA = 0x12;
 
-    public static byte[] decompress(byte[] sector, int compressedSize, int uncompressedSize) throws JMpqException {
+    public static byte[] decompress(byte[] sector, int compressedSize, int uncompressedSize) throws IOException {
         if (compressedSize == uncompressedSize) {
             return sector;
         }
@@ -37,7 +37,7 @@ public class CompressionUtil {
         boolean flip = false;
 
         if ((compressionType & FLAG_DEFLATE) != 0) {
-            JzLibHelper.inflate(sector, 1, uncompressedSize, outByteArray);
+            JzLibHelper.inflate(sector, outByteArray);
             flip = true;
         } else if ((compressionType & FLAG_LZMA) != 0) {
             throw new JMpqException("Unsupported compression LZMA");
@@ -86,7 +86,7 @@ public class CompressionUtil {
 		byte[] out = new byte[uncompressedSize];
 
 		switch (compressionType) {
-			case FLAG_DEFLATE -> JzLibHelper.inflate(sector, 1, uncompressedSize, out);
+			case FLAG_DEFLATE -> JzLibHelper.inflate(sector, out);
 			case FLAG_IMPLODE -> Exploder.pkexplode(sector, out, 1);
 			case FLAG_BZIP2 -> {
 				InputStream inputStream = new ByteArrayInputStream(sector, 1, sector.length - 1);

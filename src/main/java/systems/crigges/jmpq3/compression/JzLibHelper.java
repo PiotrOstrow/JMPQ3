@@ -2,22 +2,21 @@ package systems.crigges.jmpq3.compression;
 
 import com.jcraft.jzlib.Deflater;
 import com.jcraft.jzlib.GZIPException;
-import com.jcraft.jzlib.Inflater;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 public class JzLibHelper {
 
-    public static void inflate(byte[] bytes, int offset, int uncompSize, byte[] output) {
-        Inflater inf = new Inflater();
-        inf.init();
-        inf.setInput(bytes, offset, bytes.length - 1, false);
-        inf.setOutput(output);
-        while ((inf.total_out < uncompSize) && (inf.total_in < bytes.length)) {
-            inf.avail_in = (inf.avail_out = 1);
-            int err = inf.inflate(0);
-            if (err == 1)
-                break;
+    public static void inflate(byte[] input, byte[] output) throws IOException {
+        ByteArrayInputStream in = new ByteArrayInputStream(input, 1, input.length - 1);
+        try (InflaterInputStream stream = new InflaterInputStream(in, new Inflater(), input.length - 1)) {
+            int read = stream.read(output);
+            if(read != output.length)
+                throw new IllegalStateException();
         }
-        inf.end();
     }
 
     public static byte[] deflate(byte[] bytes, boolean strongDeflate) throws GZIPException {

@@ -188,7 +188,7 @@ public class MpqFile {
         outputStream.close();
     }
 
-    private byte[] decompressSector(byte[] sector, int normalSize, int uncompressedSize) throws JMpqException {
+    private byte[] decompressSector(byte[] sector, int normalSize, int uncompressedSize) throws IOException {
         return CompressionUtil.decompress(sector, normalSize, uncompressedSize);
     }
 
