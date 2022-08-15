@@ -249,7 +249,7 @@ public class JMpqArchive implements AutoCloseable {
         ByteBuffer buffer = ByteBuffer.allocate(b.compressedSize()).order(ByteOrder.LITTLE_ENDIAN);
         Util.readFully(buffer, fileChannel, headerOffset + b.getFilePosUnsigned());
 
-        return new MpqFile(buffer.array(), b, discBlockSize, name);
+        return new MpqFile(buffer.array(), b, discBlockSize, name, formatVersion);
     }
 
     public MpqFile getMpqFileByBlock(Block block) throws IOException {
@@ -259,7 +259,7 @@ public class JMpqArchive implements AutoCloseable {
         ByteBuffer buffer = ByteBuffer.allocate(block.compressedSize()).order(ByteOrder.LITTLE_ENDIAN);
         Util.readFully(buffer, fileChannel, headerOffset + block.getFilePosUnsigned());
 
-        return new MpqFile(buffer.array(), block, discBlockSize, "");
+        return new MpqFile(buffer.array(), block, discBlockSize, "", formatVersion);
     }
 
     public List<MpqFile> getMpqFilesByBlockTable() {

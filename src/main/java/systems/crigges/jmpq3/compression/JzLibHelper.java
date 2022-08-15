@@ -13,9 +13,9 @@ public class JzLibHelper {
     public static void inflate(byte[] input, byte[] output) throws IOException {
         ByteArrayInputStream in = new ByteArrayInputStream(input, 1, input.length - 1);
         try (InflaterInputStream stream = new InflaterInputStream(in, new Inflater(), input.length - 1)) {
-            int read = stream.read(output);
-            if(read != output.length)
-                throw new IllegalStateException();
+            for(int read = 0, pos = 0; read != -1 && pos < output.length; pos += read) {
+                read = stream.read(output, pos, output.length - pos);
+            }
         }
     }
 

@@ -6,7 +6,9 @@ import systems.crigges.jmpq3.security.MPQEncryption;
 import systems.crigges.jmpq3.security.MPQHashGenerator;
 
 import javax.annotation.concurrent.Immutable;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -26,16 +28,18 @@ public class MpqFile {
     private final byte[] buffer;
     private final Block block;
     private final String name;
+    private final int archiveVersion;
     private final boolean isEncrypted;
     private final int sectorSize;
     private final int sectorCount;
     private final int baseKey;
 
-    MpqFile(byte[] buffer, Block b, int sectorSize, String name)  {
+    MpqFile(byte[] buffer, Block b, int sectorSize, String name, int archiveVersion)  {
         this.buffer = buffer;
         this.block = b;
         this.sectorSize = sectorSize;
         this.name = name;
+        this.archiveVersion = archiveVersion;
         this.isEncrypted = b.hasFlag(ENCRYPTED);
         this.sectorCount = (int) (Math.ceil(((double) block.normalSize() / (double) sectorSize)) + 1);
 
@@ -127,7 +131,7 @@ public class MpqFile {
                 if (isEncrypted) {
                     new MPQEncryption(baseKey, true).processSingle(ByteBuffer.wrap(arr));
                 }
-                arr = decompressSingleUnitSector(arr, block.compressedSize(), block.normalSize());
+                arr = decompressSector(arr, block.compressedSize(), block.normalSize());
                 writer.write(arr);
                 writer.flush();
                 writer.close();
@@ -189,11 +193,9 @@ public class MpqFile {
     }
 
     private byte[] decompressSector(byte[] sector, int normalSize, int uncompressedSize) throws IOException {
+        if(archiveVersion >= 1)
+            return CompressionUtil.decompressVersion2(sector, normalSize, uncompressedSize);
         return CompressionUtil.decompress(sector, normalSize, uncompressedSize);
-    }
-
-    private byte[] decompressSingleUnitSector(byte[] sector, int normalSize, int uncompressedSize) throws IOException {
-        return CompressionUtil.decompressSingleUnit(sector, normalSize, uncompressedSize);
     }
 
     private byte[] decompressImplodedSector(byte[] sector, int normalSize, int uncompressedSize) {

@@ -78,7 +78,7 @@ public class CompressionUtil {
         return (flip ? out : in).array();
     }
 
-	public static byte[] decompressSingleUnit(byte[] sector, int compressedSize, int uncompressedSize) throws IOException {
+	public static byte[] decompressVersion2(byte[] sector, int compressedSize, int uncompressedSize) throws IOException {
 		if (compressedSize == uncompressedSize)
 			return sector;
 
