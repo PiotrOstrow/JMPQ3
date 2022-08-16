@@ -7,6 +7,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Created by Frotty on 30.04.2017.
@@ -37,7 +39,7 @@ public class CompressionUtil {
         boolean flip = false;
 
         if ((compressionType & FLAG_DEFLATE) != 0) {
-            JzLibHelper.inflate(sector, outByteArray);
+            inflate(sector, outByteArray);
             flip = true;
         } else if ((compressionType & FLAG_LZMA) != 0) {
             throw new JMpqException("Unsupported compression LZMA");
@@ -86,7 +88,7 @@ public class CompressionUtil {
 		byte[] out = new byte[uncompressedSize];
 
 		switch (compressionType) {
-			case FLAG_DEFLATE -> JzLibHelper.inflate(sector, out);
+			case FLAG_DEFLATE -> inflate(sector, out);
 			case FLAG_IMPLODE -> Exploder.pkexplode(sector, out, 1);
 			case FLAG_BZIP2 -> {
 				InputStream inputStream = new ByteArrayInputStream(sector, 1, sector.length - 1);
@@ -116,6 +118,15 @@ public class CompressionUtil {
             byte[] buffer = new byte[uncompressedSize];
             Exploder.pkexplode(sector, buffer, 0);
             return buffer;
+        }
+    }
+
+    public static void inflate(byte[] input, byte[] output) throws IOException {
+        ByteArrayInputStream in = new ByteArrayInputStream(input, 1, input.length - 1);
+        try (InflaterInputStream stream = new InflaterInputStream(in, new Inflater(), input.length - 1)) {
+            for(int read = 0, pos = 0; read != -1 && pos < output.length; pos += read) {
+                read = stream.read(output, pos, output.length - pos);
+            }
         }
     }
 
