@@ -1,11 +1,8 @@
 package systems.crigges.jmpq3;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import systems.crigges.jmpq3.security.MPQEncryption;
 import systems.crigges.jmpq3.security.MPQHashGenerator;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.File;
 import java.io.IOException;
@@ -176,14 +173,8 @@ public class JMpqArchive implements AutoCloseable {
             blockTablePosition |= (buffer.getShort() & 0xFFFFL) << 32;
         }
 
-        // version 2 extension
         if (formatVersion >= 2) {
-            // 64 bit archive size
             archiveSize = buffer.getLong();
-
-            // TODO add support for BET and HET tables
-            buffer.getLong();
-            buffer.getLong();
         }
     }
 
@@ -209,7 +200,7 @@ public class JMpqArchive implements AutoCloseable {
         hashBuffer.rewind();
 
         // create hash table
-        hashTable = HashTable.readFromBuffer(hashBuffer, hashSize);
+        hashTable = HashTable.fromBuffer(hashBuffer, hashSize);
     }
 
     private void readBlockTable() throws IOException {
@@ -219,23 +210,18 @@ public class JMpqArchive implements AutoCloseable {
         blockTable = BlockTable.readFrom(blockBuffer);
     }
 
-    public Listfile getListFile() throws IOException{
-        MpqFile mpqFile = getMpqFile(LIST_FILE);
-        byte[] data = mpqFile.extractToBytes();
-        return Listfile.from(data);
-    }
-
     public int getTotalFileCount() {
         return blockTable.getAllVaildBlocks().size();
     }
 
     public boolean hasFile(String name) {
-        try {
-            hashTable.getBlockIndexOfFile(name);
-        } catch (IOException e) {
-            return false;
-        }
-        return true;
+        return hashTable.hasFile(name);
+    }
+
+    public Listfile getListFile() throws IOException {
+        MpqFile mpqFile = getMpqFile(LIST_FILE);
+        byte[] data = mpqFile.extractToBytes();
+        return Listfile.from(data);
     }
 
     /**
@@ -275,11 +261,6 @@ public class JMpqArchive implements AutoCloseable {
         return mpqFiles;
     }
 
-    @Override
-    public void close() throws IOException {
-        fileChannel.close();
-    }
-
     public boolean isLegacyCompatibility() {
         return mpqOpenOptions.contains(MPQOpenOption.FORCE_V0);
     }
@@ -289,8 +270,7 @@ public class JMpqArchive implements AutoCloseable {
     }
 
     @Override
-    public String toString() {
-        return "JMpqEditor [headerSize=" + headerSize + ", archiveSize=" + archiveSize + ", formatVersion=" + formatVersion + ", discBlockSize=" + discBlockSize
-            + ", hashPos=" + hashTablePosition + ", blockPos=" + blockTablePosition + ", hashSize=" + hashSize + ", blockSize=" + blockSize + ", hashMap=" + hashTable + "]";
+    public void close() throws IOException {
+        fileChannel.close();
     }
 }

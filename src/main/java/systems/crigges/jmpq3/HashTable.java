@@ -1,11 +1,8 @@
 package systems.crigges.jmpq3;
 
-import systems.crigges.jmpq3.security.MPQHashGenerator;
-
 import javax.annotation.concurrent.Immutable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,29 +43,9 @@ public class HashTable {
         this.buckets = buckets;
     }
 
-    public static HashTable readFromBuffer(ByteBuffer src, int hashSize) {
-        if (hashSize <= 0 || (hashSize & (hashSize - 1)) != 0) {
-            throw new IllegalArgumentException("Capacity must be power of 2.");
-        }
-
-        List<Bucket> buckets = new ArrayList<>();
-        for(int i = 0; i < hashSize; i++) {
-            Bucket bucket = Bucket.readFromBuffer(src);
-            buckets.add(bucket);
-        }
-
-        return new HashTable(buckets);
-    }
-
-    public void writeToBuffer(ByteBuffer dest) {
-        for (Bucket bucket : buckets) {
-            bucket.writeToBuffer(dest);
-        }
-    }
-
     /**
      * Internal method to get a bucket index for the specified file.
-     * 
+     *
      * @param file file identifier.
      * @return the bucket index used, or -1 if the file has no mapping.
      */
@@ -97,7 +74,7 @@ public class HashTable {
 
     /**
      * Internal method to get a bucket for the specified file.
-     * 
+     *
      * @param file file identifier.
      * @return the file bucket, or null if the file has no mapping.
      */
@@ -110,7 +87,7 @@ public class HashTable {
      * Check if the specified file path has a mapping in this hash table.
      * <p>
      * A file path has a mapping if it has been mapped for at least 1 locale.
-     * 
+     *
      * @param file file path.
      * @return true if the hash table has a mapping for the file, otherwise
      *         false.
@@ -121,9 +98,8 @@ public class HashTable {
 
     /**
      * Get the block table index for the specified file.
-     * 
-     * @param name
-     *            file path name.
+     *
+     * @param name file path name.
      * @return block table index.
      * @throws IOException
      *             if the specified file has no mapping.
@@ -139,11 +115,9 @@ public class HashTable {
      * for a different locale. When multiple locales are available the order of
      * priority for selection is the specified locale followed by the default
      * locale and lastly the first locale found.
-     * 
-     * @param name
-     *            file path name.
-     * @param locale
-     *            file locale.
+     *
+     * @param name   file path name.
+     * @param locale file locale.
      * @return block table index.
      * @throws IOException
      *             if the specified file has no mapping.
@@ -158,5 +132,19 @@ public class HashTable {
             throw new JMpqException("File has invalid block table index <" + entry.blockTableIndex() + ">.");
 
         return entry.blockTableIndex();
+    }
+
+    public static HashTable fromBuffer(ByteBuffer src, int hashSize) {
+        if (hashSize <= 0 || (hashSize & (hashSize - 1)) != 0) {
+            throw new IllegalArgumentException("Capacity must be power of 2.");
+        }
+
+        List<Bucket> buckets = new ArrayList<>();
+        for(int i = 0; i < hashSize; i++) {
+            Bucket bucket = Bucket.readFromBuffer(src);
+            buckets.add(bucket);
+        }
+
+        return new HashTable(buckets);
     }
 }
